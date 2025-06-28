@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+{% load password_extras %}
+
+{% block title %}Password Manager - Dashboard{% endblock %}
+
+{% block styles %}
+<style>
+.category-icon {
+    margin-right: 8px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-4">Password Manager</h1>
+            <p class="lead">Securely manage your passwords, passkeys, and credentials</p>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Passwords</h5>
+                    <h2 class="display-4">{{ total_passwords }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card {% if compromised_passwords > 0 %}bg-danger{% else %}bg-success{% endif %} text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Compromised</h5>
+                    <h2 class="display-4">{{ compromised_passwords }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card {% if reused_passwords > 0 %}bg-warning{% else %}bg-success{% endif %} text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Reused</h5>
+                    <h2 class="display-4">{{ reused_passwords }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Categories</h5>
+                    <h2 class="display-4">{{ categories.count }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between">
+                <a href="{% url 'password_list' %}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-key"></i> View All Passwords
+                </a>
+                <a href="{% url 'password_security' %}" class="btn btn-secondary btn-lg">
+                    <i class="fas fa-shield-alt"></i> Security Settings
+                </a>
+                <button class="btn btn-success btn-lg" data-toggle="modal" data-target="#addPasswordModal">
+                    <i class="fas fa-plus"></i> Add New Password
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Categories -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h3>Password Categories</h3>
+            <div class="row">
+                {% for category in categories %}
+                <div class="col-md-3 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="fas fa-{{ category.icon }} text-{{ category.color|default:'primary' }} mr-2"></i>
+                                {{ category.name }}
+                            </h5>
+                            <p class="card-text">{{ category.passwordentry_set.count }} passwords</p>
+                            <a href="{% url 'password_list' %}?category={{ category.id }}" class="btn btn-sm btn-outline-primary">View</a>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        You haven't created any categories yet. Create one to better organize your passwords.
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Types -->
+    <div class="row">
+        <div class="col-12">
+            <h3>Password Types</h3>
+            <div class="row">
+                {% for type_code, type_name in password_types %}
+                <div class="col-md-3 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                {% if type_code == 'password' %}
+                                <i class="fas fa-globe mr-2"></i>
+                                {% elif type_code == 'app' %}
+                                <i class="fas fa-mobile-alt mr-2"></i>
+                                {% elif type_code == 'wifi' %}
+                                <i class="fas fa-wifi mr-2"></i>
+                                {% elif type_code == 'card' %}
+                                <i class="fas fa-credit-card mr-2"></i>
+                                {% elif type_code == 'note' %}
+                                <i class="fas fa-sticky-note mr-2"></i>
+                                {% elif type_code == 'passkey' %}
+                                <i class="fas fa-fingerprint mr-2"></i>
+                                {% elif type_code == 'identity' %}
+                                <i class="fas fa-id-card mr-2"></i>
+                                {% endif %}
+                                {{ type_name }}
+                            </h5>
+                            <p class="card-text">{{ type_counts|get_item:type_code }} items</p>
+                            <a href="{% url 'password_list' %}?type={{ type_code }}" class="btn btn-sm btn-outline-primary">View</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Password Modal -->
+<div class="modal fade" id="addPasswordModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Password</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="passwordForm">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="title">Title</label>
+                        <input type="text" class="form-control" id="title" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="entryType">Type</label>
+                            <select class="form-control" id="entryType">
+                                <option value="password">Website Password</option>
+                                <option value="app">App Password</option>
+                                <option value="wifi">Wi-Fi Password</option>
+                                <option value="card">Credit/Debit Card</option>
+                                <option value="note">Secure Note</option>
+                                <option value="passkey">Passkey</option>
+                                <option value="identity">Identity</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="category">Category</label>
+                            <select class="form-control" id="category">
+                                <option value="">-- Select Category --</option>
+                                {% for category in categories %}
+                                <option value="{{ category.id }}">{{ category.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="username">Username</label>
+                            <input type="text" class="form-control" id="username">
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="email">Email</label>
+                            <input type="email" class="form-control" id="email">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="password">
+                            <div class="input-group-append">
+                                <button type="button" class="btn btn-outline-secondary" id="showPassword">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-primary" id="generatePassword">
+                                    Generate
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="websiteUrl">Website URL</label>
+                        <input type="url" class="form-control" id="websiteUrl">
+                    </div>
+                    <div class="form-group">
+                        <label for="notes">Notes</label>
+                        <textarea class="form-control" id="notes" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="savePassword">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // Password visibility toggle
+        $('#showPassword').click(function() {
+            var passwordField = $('#password');
+            var fieldType = passwordField.attr('type');
+            
+            if (fieldType === 'password') {
+                passwordField.attr('type', 'text');
+                $(this).html('<i class="fas fa-eye-slash"></i>');
+            } else {
+                passwordField.attr('type', 'password');
+                $(this).html('<i class="fas fa-eye"></i>');
+            }
+        });
+        
+        // Save password form
+        $('#savePassword').click(function() {
+            // Collect form data
+            var passwordData = {
+                title: $('#title').val(),
+                entry_type: $('#entryType').val(),
+                username: $('#username').val(),
+                email: $('#email').val(),
+                password: $('#password').val(),
+                website_url: $('#websiteUrl').val(),
+                notes: $('#notes').val(),
+                category: $('#category').val() || null,
+                is_favorite: false
+            };
+            
+            // Check required fields
+            if (!passwordData.title || !passwordData.password) {
+                alert('Title and password are required fields');
+                return;
+            }
+            
+            // Actually save the password to the database
+            $.ajax({
+                url: '/password_management/api/web-create-password/',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(passwordData),
+                headers: {
+                    'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
+                },
+                success: function(response) {
+                    alert('Password saved successfully!');
+                    $('#addPasswordModal').modal('hide');
+                    // Reload the page to show the new password
+                    location.reload();
+                },
+                error: function(xhr, status, error) {
+                    // Handle errors
+                    var errorMessage = 'Failed to save password.';
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        errorMessage += ' ' + xhr.responseJSON.error;
+                    }
+                    alert(errorMessage);
+                }
+            });
+        });
+        
+        // Generate password button
+        $('#generatePassword').click(function() {
+            // Call API to generate password
+            $.ajax({
+                url: '/password_management/api/generate-password/',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    length: 16,
+                    uppercase: true,
+                    numbers: true,
+                    symbols: true
+                }),
+                headers: {
+                    'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
+                },
+                success: function(response) {
+                    var password = response.password || (response.data && response.data.password);
+                    if (password) {
+                        $('#password').val(password);
+                        $('#password').attr('type', 'text');
+                        $('#showPassword').html('<i class="fas fa-eye-slash"></i>');
+                    } else {
+                        alert('Invalid response from server');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    alert('Failed to generate password');
+                }
+            });
+        });
+    });
+</script>
+{% endblock %} 

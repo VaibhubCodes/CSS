@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% load password_extras %}
+
+{% block title %}Password Security Settings{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>Security Settings</h1>
+            <p class="lead">Configure your password security preferences</p>
+        </div>
+    </div>
+    
+    <div class="row mb-3">
+        <div class="col-12">
+            <a href="{% url 'password_dashboard' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+    
+    {% if messages %}
+    <div class="row mb-3">
+        <div class="col-12">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Password Security Preferences</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="form-group">
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" class="custom-control-input" id="check_for_compromised" name="check_for_compromised" {% if settings.check_for_compromised %}checked{% endif %}>
+                                <label class="custom-control-label" for="check_for_compromised">Check for compromised passwords</label>
+                            </div>
+                            <small class="form-text text-muted">Automatically check if your passwords have been found in data breaches</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" class="custom-control-input" id="suggest_strong_passwords" name="suggest_strong_passwords" {% if settings.suggest_strong_passwords %}checked{% endif %}>
+                                <label class="custom-control-label" for="suggest_strong_passwords">Suggest strong passwords</label>
+                            </div>
+                            <small class="form-text text-muted">Automatically suggest strong passwords when creating new entries</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="min_password_length">Minimum password length</label>
+                            <input type="number" class="form-control" id="min_password_length" name="min_password_length" value="{{ settings.min_password_length }}" min="8" max="64">
+                            <small class="form-text text-muted">Recommended: at least 12 characters</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" class="custom-control-input" id="password_require_uppercase" name="password_require_uppercase" {% if settings.password_require_uppercase %}checked{% endif %}>
+                                <label class="custom-control-label" for="password_require_uppercase">Require uppercase letters</label>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" class="custom-control-input" id="password_require_numbers" name="password_require_numbers" {% if settings.password_require_numbers %}checked{% endif %}>
+                                <label class="custom-control-label" for="password_require_numbers">Require numbers</label>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" class="custom-control-input" id="password_require_symbols" name="password_require_symbols" {% if settings.password_require_symbols %}checked{% endif %}>
+                                <label class="custom-control-label" for="password_require_symbols">Require special characters</label>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" class="custom-control-input" id="auto_fill_enabled" name="auto_fill_enabled" {% if settings.auto_fill_enabled %}checked{% endif %}>
+                                <label class="custom-control-label" for="auto_fill_enabled">Enable auto-fill</label>
+                            </div>
+                            <small class="form-text text-muted">Allow auto-filling of passwords in web forms (requires browser extension)</small>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">Save Settings</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">Master Password</h5>
+                </div>
+                <div class="card-body">
+                    <p>Your master password is used for additional security when viewing or editing sensitive information.</p>
+                    <button type="button" class="btn btn-outline-danger" data-toggle="modal" data-target="#masterPasswordModal">
+                        <i class="fas fa-key"></i> Change Master Password
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Master Password Modal -->
+<div class="modal fade" id="masterPasswordModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Change Master Password</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="masterPasswordForm">
+                    <div class="form-group">
+                        <label for="current_password">Current Master Password</label>
+                        <input type="password" class="form-control" id="current_password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="new_password">New Master Password</label>
+                        <input type="password" class="form-control" id="new_password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm_password">Confirm New Master Password</label>
+                        <input type="password" class="form-control" id="confirm_password" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveMasterPassword">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // Master password form handler
+        $('#saveMasterPassword').click(function() {
+            var current = $('#current_password').val();
+            var newPass = $('#new_password').val();
+            var confirm = $('#confirm_password').val();
+            
+            // Simple client-side validation
+            if (newPass !== confirm) {
+                alert('New passwords do not match!');
+                return;
+            }
+            
+            // Call API to change master password
+            $.ajax({
+                url: '/password_management/api/master-password/',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    current_password: current,
+                    master_password: newPass
+                }),
+                success: function(response) {
+                    alert('Master password changed successfully!');
+                    $('#masterPasswordModal').modal('hide');
+                },
+                error: function(xhr) {
+                    alert('Error: ' + (xhr.responseJSON?.error || 'Failed to change master password'));
+                }
+            });
+        });
+    });
+</script>
+{% endblock %} 

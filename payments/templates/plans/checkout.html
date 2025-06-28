@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Checkout</title>
+    <style>
+        .checkout-container {
+            max-width: 400px;
+            margin: 40px auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .payment-details {
+            background-color: #f8f9fa;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .payment-button {
+            background-color: #2563eb;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    <div class="checkout-container">
+        <h2>Complete Your Payment</h2>
+        
+        <div class="payment-details">
+            <div class="detail-row">
+                <span>Plan Type:</span>
+                <span>{{ plan_type|title }}</span>
+            </div>
+            <div class="detail-row">
+                <span>Amount:</span>
+                <span>₹{{ amount|divisibleby:100 }}</span>
+            </div>
+            <div class="detail-row">
+                <span>Email:</span>
+                <span>{{ user_email }}</span>
+            </div>
+        </div>
+
+        <button id="pay-button" class="payment-button">Pay Now</button>
+    </div>
+
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script>
+        var options = {
+            "key": "{{ razorpay_key }}",
+            "amount": "{{ amount }}",
+            "currency": "{{ currency }}",
+            "name": "File Management System",
+            "description": "{{ plan_type|title }} Plan Subscription",
+            "order_id": "{{ order_id }}",
+            "handler": function (response) {
+                document.getElementById('pay-button').disabled = true;
+                fetch("{{ callback_url }}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(response)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if(data.status === 'success') {
+                        window.location.href = "/payment-success/";
+                    } else {
+                        // alert("Payment failed. Please try again.");
+                        document.getElementById('pay-button').disabled = false;
+                    }
+                });
+            },
+            "prefill": {
+                "email": "{{ user_email }}"
+            },
+            "theme": {
+                "color": "#2563eb"
+            }
+        };
+
+        document.getElementById('pay-button').onclick = function() {
+            var rzp1 = new Razorpay(options);
+            rzp1.open();
+        };
+    </script>
+</body>
+</html>

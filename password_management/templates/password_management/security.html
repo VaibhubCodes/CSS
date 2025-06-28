@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load password_extras %}
+
+{% block title %}Password Security{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>Password Security</h1>
+            <p class="lead">Review and fix security issues with your passwords</p>
+        </div>
+    </div>
+    
+    <div class="row mb-3">
+        <div class="col-12">
+            <a href="{% url 'password_dashboard' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">Compromised Passwords</h5>
+                </div>
+                <div class="card-body">
+                    {% if compromised_passwords %}
+                    <ul class="list-group">
+                        {% for password in compromised_passwords %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ password.title }}
+                            <a href="{% url 'password_detail' password.id %}" class="btn btn-sm btn-outline-primary">View</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="card-text">No compromised passwords found. Great job!</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">Weak Passwords</h5>
+                </div>
+                <div class="card-body">
+                    {% if weak_passwords %}
+                    <ul class="list-group">
+                        {% for password in weak_passwords %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ password.title }}
+                            <a href="{% url 'password_detail' password.id %}" class="btn btn-sm btn-outline-primary">View</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="card-text">No weak passwords found. Well done!</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> This is a simplified security dashboard. 
+                More comprehensive security analysis will be available in a future update.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

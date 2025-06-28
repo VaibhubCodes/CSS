@@ -1,0 +1,349 @@
+{# templates/file_management/subscriptions/subscription_list.html #}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Subscription Management</title>
+    <style>
+        .subscriptions-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        .subscription-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 10px 0;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .subscription-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .subscription-title {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .subscription-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .status-active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-expired {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .subscription-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .subscription-form {
+            max-width: 500px;
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background: #1d4ed8;
+        }
+    </style>
+</head>
+<body>
+    <div class="subscriptions-container">
+        <h2>Your Subscriptions</h2>
+
+        <!-- Subscription List -->
+        <div class="subscriptions-list">
+            {% for sub in subscriptions %}
+            <div class="subscription-card">
+                <div class="subscription-header">
+                    <div class="subscription-title">{{ sub.app_name }}</div>
+                    <div class="subscription-status status-{{ sub.status }}">
+                        {{ sub.status|title }}
+                    </div>
+                </div>
+                <div class="subscription-details">
+                    <div>
+                        <strong>Type:</strong> {{ sub.subscription_type }}
+                    </div>
+                    <div>
+                        <strong>Amount:</strong> ₹{{ sub.amount }}
+                    </div>
+                    <div>
+                        <strong>Start Date:</strong> {{ sub.start_date }}
+                    </div>
+                    <div>
+                        <strong>End Date:</strong> {{ sub.end_date }}
+                    </div>
+                    <div>
+                        <strong>Auto Renewal:</strong> {{ sub.auto_renewal|yesno }}
+                    </div>
+                    {% if sub.payment_method %}
+                    <div>
+                        <strong>Payment Method:</strong> 
+                        {{ sub.payment_method.bank_name }} (**** {{ sub.payment_method.card_number|slice:"-4:" }})
+                    </div>
+                    {% endif %}
+                </div>
+                <button onclick="deleteSubscription({{ sub.id }})" class="btn btn-danger">
+                    Delete
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Add New Subscription Form -->
+        <div class="subscription-form">
+            <h3>Add New Subscription</h3>
+            <form id="subscriptionForm" onsubmit="addSubscription(event)">
+                <div class="form-group">
+                    <label>App/Service Name</label>
+                    <input type="text" name="app_name" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Subscription Type</label>
+                    <select name="subscription_type" required>
+                        <option value="Monthly">Monthly</option>
+                        <option value="Annual">Annual</option>
+                        <option value="Quarterly">Quarterly</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Amount</label>
+                    <input type="number" name="amount" step="0.01" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Start Date</label>
+                    <input type="date" name="start_date" required>
+                </div>
+
+                <div class="form-group">
+                    <label>End Date</label>
+                    <input type="date" name="end_date" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Payment Method</label>
+                    <select name="payment_method_id">
+                        <option value="">Select Payment Method</option>
+                        {% for card in cards %}
+                        <option value="{{ card.id }}">
+                            {{ card.bank_name }} - **** {{ card.card_number|slice:"-4:" }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" name="auto_renewal">
+                        Auto Renewal
+                    </label>
+                </div>
+
+                <button type="submit" class="btn">Add Subscription</button>
+            </form>
+        </div>
+
+        <!-- Extract from Document Form -->
+        <div class="subscription-form">
+            <h3>Extract Subscription from Document</h3>
+            <form id="extractForm" onsubmit="extractFromDocument(event)">
+                <div class="form-group">
+                    <label>Select Document</label>
+                    <select name="file_id" required>
+                        {% for file in files %}
+                            <option value="{{ file.id }}">{{ file.file.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn">Extract Subscription Details</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        async function addSubscription(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+            
+            const data = {
+                app_name: formData.get('app_name'),
+                subscription_type: formData.get('subscription_type'),
+                amount: parseFloat(formData.get('amount')),
+                start_date: formData.get('start_date'),
+                end_date: formData.get('end_date'),
+                auto_renewal: formData.get('auto_renewal') === 'on',
+                status: 'active'
+            };
+    
+            if (formData.get('payment_method_id')) {
+                data.payment_method_id = parseInt(formData.get('payment_method_id'));
+            }
+    
+            try {
+                const response = await fetch('/file_management/api/subscriptions/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify(data)
+                });
+    
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    const errorData = await response.json();
+                    let errorMessage = 'Error adding subscription:\n';
+                    if (typeof errorData === 'object') {
+                        Object.entries(errorData).forEach(([key, value]) => {
+                            errorMessage += `\n${key}: ${value}`;
+                        });
+                    } else {
+                        errorMessage = errorData.toString();
+                    }
+                    alert(errorMessage);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error adding subscription: ' + error.message);
+            }
+        }
+    
+        async function extractFromDocument(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+    
+            try {
+                const response = await fetch('/file_management/api/subscriptions/extract_from_document/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        file_id: formData.get('file_id')
+                    })
+                });
+    
+                const data = await response.json();
+                if (response.ok) {
+                    if (data.subscriptions_found.length > 0) {
+                        const confirmed = confirm(
+                            `Found ${data.subscriptions_found.length} subscription(s). Would you like to add them?`
+                        );
+                        if (confirmed) {
+                            for (const sub of data.subscriptions_found) {
+                                await fetch('/file_management/api/subscriptions/', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRFToken': getCookie('csrftoken')
+                                    },
+                                    body: JSON.stringify(sub)
+                                });
+                            }
+                            window.location.reload();
+                        }
+                    } else {
+                        alert('No subscriptions found in the document');
+                    }
+                } else {
+                    alert(data.error || 'Error extracting subscription details');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error extracting subscription details');
+            }
+        }
+        
+        function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+    
+        async function deleteSubscription(subId) {
+        if (!confirm('Are you sure you want to delete this subscription?')) return;
+
+        try {
+            const response = await fetch(`/file_management/api/subscriptions/${subId}/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            });
+
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                alert('Error deleting subscription');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error deleting subscription');
+        }
+    }    
+    </script>
+
+</body>
+</html>

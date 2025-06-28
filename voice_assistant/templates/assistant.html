@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Assistant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: #f0f2f5;
+            height: 100vh;
+        }
+        
+        .assistant-container {
+            display: flex;
+            height: 100vh;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        .sidebar {
+            width: 300px;
+            background: white;
+            padding: 20px;
+            border-right: 1px solid #e5e7eb;
+        }
+        
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            background: #f9fafb;
+        }
+        
+        .chat-container {
+            flex: 1;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            overflow-y: auto;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .control-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .voice-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .voice-button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            background: #2563eb;
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .voice-button:hover {
+            background: #1d4ed8;
+        }
+        
+        .voice-button:disabled {
+            background: #93c5fd;
+            cursor: not-allowed;
+        }
+        
+        .stats-card {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .stats-title {
+            font-size: 14px;
+            color: #64748b;
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+        
+        .stat-label {
+            color: #475569;
+            font-size: 14px;
+        }
+        
+        .stat-value {
+            color: #0f172a;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        .interaction {
+            margin: 16px 0;
+            padding: 16px;
+            border-radius: 8px;
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .prompt {
+            background: #f1f5f9;
+            border-left: 4px solid #64748b;
+        }
+        
+        .response {
+            background: #eff6ff;
+            border-left: 4px solid #2563eb;
+        }
+        
+        .audio-player {
+            width: 100%;
+            margin-top: 12px;
+            border-radius: 8px;
+        }
+        
+        #status {
+            color: #64748b;
+            font-size: 14px;
+        }
+        
+        .help-section {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 24px;
+        }
+        
+        .help-title {
+            font-size: 14px;
+            color: #64748b;
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+        
+        .example-commands {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .example-commands li {
+            padding: 8px 12px;
+            margin-bottom: 4px;
+            background: white;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .example-commands li:hover {
+            background: #eff6ff;
+            color: #2563eb;
+        }
+        
+        .conversation-divider {
+            text-align: center;
+            color: #6b7280;
+            margin: 20px 0;
+            font-size: 12px;
+            position: relative;
+        }
+        
+        .conversation-divider:before,
+        .conversation-divider:after {
+            content: "";
+            display: inline-block;
+            width: 30%;
+            height: 1px;
+            background-color: #e5e7eb;
+            position: relative;
+            vertical-align: middle;
+        }
+        
+        .conversation-divider:before {
+            right: 10px;
+        }
+        
+        .conversation-divider:after {
+            left: 10px;
+        }
+        
+        /* New styles for file display */
+        .file-link-button {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 8px 16px;
+            background-color: #2563eb;
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        
+        .file-link-button:hover {
+            background-color: #1d4ed8;
+        }
+        
+        .file-link-button i {
+            margin-right: 8px;
+        }
+        
+        .file-preview {
+            margin-top: 16px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+            max-height: 300px;
+        }
+        
+        .system-message {
+            text-align: center;
+            padding: 8px 16px;
+            background-color: #f3f4f6;
+            border-radius: 16px;
+            color: #6b7280;
+            font-size: 12px;
+            margin: 12px auto;
+            max-width: 80%;
+            font-style: italic;
+        }
+        
+        /* Text input field */
+        .text-input-container {
+            display: flex;
+            margin-top: 15px;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 15px;
+        }
+        
+        .text-input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .send-button {
+            margin-left: 10px;
+            padding: 10px 20px;
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .send-button:hover {
+            background-color: #1d4ed8;
+        }
+    </style>
+</head>
+<body>
+    <div class="assistant-container">
+        <div class="sidebar">
+            <div class="stats-card">
+                <div class="stats-title">Storage Overview</div>
+                <div class="stat-item">
+                    <span class="stat-label">Used Space</span>
+                    <span class="stat-value" id="usedSpace">{{ storage_info.used }}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Available</span>
+                    <span class="stat-value" id="availableSpace">{{ storage_info.available }}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Total Files</span>
+                    <span class="stat-value" id="totalFiles">{{ file_count }}</span>
+                </div>
+            </div>
+            
+            <div class="help-section">
+                <div class="help-title">Try Asking</div>
+                <ul class="example-commands">
+                    <li onclick="speakCommand(this)">Show me all PDF files</li>
+                    <li onclick="speakCommand(this)">What's in my Banking category?</li>
+                    <li onclick="speakCommand(this)">How much storage do I have left?</li>
+                    <li onclick="speakCommand(this)">Show my recent uploads</li>
+                    <li onclick="speakCommand(this)">Find files with keyword 'invoice'</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="chat-container" id="chatContainer">
+                <!-- Interactions will be added here -->
+            </div>
+            
+            <div class="control-panel">
+                <div class="voice-controls">
+                    <button id="startRecording" class="voice-button">
+                        Start Recording
+                    </button>
+                    <button id="stopRecording" class="voice-button" disabled>
+                        Stop Recording
+                    </button>
+                    <button id="newConversation" class="voice-button">
+                        New Conversation
+                    </button>
+                    <span id="status">Ready to listen...</span>
+                </div>
+                
+                <!-- Text input -->
+                <div class="text-input-container">
+                    <input type="text" id="textInput" class="text-input" placeholder="Type your message here..." />
+                    <button id="sendText" class="send-button">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+<script>
+    let mediaRecorder;
+    let audioChunks = [];
+    let currentConversationId = null; // Track the current conversation ID
+
+    // --- Function to get CSRF token from cookies ---
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken'); // Get the token
+
+        async function setupRecorder() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+                
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    await sendAudioToServer(audioBlob);
+                    audioChunks = [];
+                };
+                
+                document.getElementById('status').textContent = 'Ready to listen...';
+            } catch (error) {
+                console.error('Error accessing microphone:', error);
+                document.getElementById('status').textContent = 'Error: Could not access microphone';
+            }
+        }
+
+        async function sendAudioToServer(audioBlob) {
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'recording.wav'); // Add a filename
+
+        if (currentConversationId) {
+            formData.append('conversation_id', currentConversationId);
+        }
+        formData.append('include_audio', 'true'); // Send this flag
+
+        document.getElementById('status').textContent = 'Processing...';
+
+        try {
+            const response = await fetch('/voice/api/process/', {
+                method: 'POST',
+                headers: { // --- ADD CSRF TOKEN ---
+                    'X-CSRFToken': csrftoken
+                    // 'Content-Type' is set automatically for FormData
+                },
+                body: formData,
+            });
+
+            const data = await response.json(); // Always try to parse JSON
+
+            if (!response.ok) { // Check HTTP status code
+                 console.error("API Error Response:", data);
+                 const errorMsg = data.error || `Request failed with status ${response.status}`;
+                 document.getElementById('status').textContent = 'Error: ' + errorMsg;
+                 addInteraction('[Audio]', `Error: ${errorMsg}`, null);
+                 return; // Stop processing on error
+             }
+
+
+            if (data.success && data.data) { // Check backend success flag and data presence
+                if (data.data.conversation_id) {
+                    currentConversationId = data.data.conversation_id;
+                    console.log("Updated Conversation ID:", currentConversationId);
+                }
+                const fileData = (data.data.action?.type === 'display_file') ? data.data.action.payload : null;
+                addInteraction(data.data.prompt || '[Audio]', data.data.response, data.data.audio_url, fileData);
+                document.getElementById('status').textContent = 'Ready to listen...';
+            } else {
+                // Handle cases where success might be true but data is missing, or success is false
+                const errorMsg = data.error || 'Received unexpected response format.';
+                document.getElementById('status').textContent = 'Error: ' + errorMsg;
+                addInteraction('[Audio]', `Assistant Error: ${errorMsg}`, null);
+            }
+        } catch (error) {
+            console.error('Error sending audio:', error);
+            document.getElementById('status').textContent = 'Error processing audio';
+            addInteraction('[Audio]', 'Sorry, a network or server error occurred.', null);
+        }
+    }
+        
+        function addInteraction(prompt, response, audioUrl, fileData = null) {
+            const chatContainer = document.getElementById('chatContainer');
+
+            // Add Prompt
+            if (prompt) {
+                const promptDiv = document.createElement('div');
+                promptDiv.className = 'interaction prompt';
+                promptDiv.textContent = 'You: ' + prompt;
+                chatContainer.appendChild(promptDiv);
+            }
+
+            // Add Response Container
+            const responseDiv = document.createElement('div');
+            responseDiv.className = 'interaction response';
+
+            // Add Response Text (handle potential HTML - basic sanitation needed if allowing HTML)
+            const responseTextDiv = document.createElement('div');
+             // Basic check - replace newline characters with <br> for display
+             const formattedResponse = response.replace(/\n/g, '<br>');
+             responseTextDiv.innerHTML = 'Assistant: ' + formattedResponse; // Use innerHTML to render line breaks
+             responseDiv.appendChild(responseTextDiv);
+
+
+            // Add File Button/Preview if fileData exists and is valid
+            if (fileData && (fileData.fileUrl || fileData.file_url)) {
+                const fileUrl = fileData.fileUrl || fileData.file_url;
+                const fileName = fileData.fileName || fileData.file_name || 'file';
+                const fileType = (fileData.fileType || fileData.file_type || '').toLowerCase();
+
+                // Create Link Button
+                const fileLink = document.createElement('a');
+                fileLink.href = fileUrl;
+                fileLink.className = 'file-link-button';
+                fileLink.target = '_blank'; // Open in new tab
+                fileLink.rel = 'noopener noreferrer'; // Security best practice
+                // Basic icon logic
+                let iconClass = '📄'; // Default file icon
+                if (fileType.includes('image') || /\.(jpe?g|png|gif|webp)$/i.test(fileName)) iconClass = '🖼️';
+                else if (fileType.includes('pdf')) iconClass = '📄'; // PDF specific?
+                else if (fileType.includes('doc')) iconClass = '📝';
+                else if (fileType.includes('xls') || fileType.includes('sheet')) iconClass = '📊';
+                else if (fileType.includes('audio') || /\.(mp3|wav|m4a)$/i.test(fileName)) iconClass = '🎵';
+                else if (fileType.includes('video') || /\.(mp4|mov|avi)$/i.test(fileName)) iconClass = '🎬';
+
+                fileLink.innerHTML = `<span style="margin-right: 8px;">${iconClass}</span> View ${fileName}`;
+                responseDiv.appendChild(fileLink);
+
+                // Add Image Preview (Optional)
+                if (iconClass === '🖼️') { // Check if it's likely an image
+                    const previewContainer = document.createElement('div');
+                    previewContainer.className = 'file-preview';
+                    const imgPreview = document.createElement('img');
+                    imgPreview.src = fileUrl; // Use the presigned URL directly
+                    imgPreview.style.maxWidth = '100%';
+                    imgPreview.style.maxHeight = '250px'; // Limit preview height
+                    imgPreview.alt = `Preview of ${fileName}`;
+                    imgPreview.style.borderRadius = '4px';
+                    imgPreview.style.marginTop = '8px';
+                    // Handle potential loading errors for the image preview
+                    imgPreview.onerror = () => { previewContainer.style.display = 'none'; };
+                    previewContainer.appendChild(imgPreview);
+                    responseDiv.appendChild(previewContainer);
+                }
+            }
+
+            // Add Audio Player
+            if (audioUrl) {
+                const audio = document.createElement('audio');
+                audio.controls = true;
+                audio.src = audioUrl;
+                audio.className = 'audio-player';
+                responseDiv.appendChild(audio);
+                audio.play().catch(e => console.warn("Audio autoplay prevented:", e)); // Handle autoplay restriction
+            }
+
+            chatContainer.appendChild(responseDiv);
+            // Scroll to bottom
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        function speakCommand(element) {
+            const text = element.textContent;
+            
+            // For example commands, we start a new conversation
+            currentConversationId = null;
+            
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                speechSynthesis.speak(utterance);
+                
+                // Highlight the clicked command
+                element.style.backgroundColor = '#bfdbfe';
+                setTimeout(() => {
+                    element.style.backgroundColor = 'white';
+                }, 2000);
+            }
+            
+            // Submit the text command to the server
+            submitTextCommand(text);
+        }
+        
+        async function submitTextCommand(text) {
+        // --- CHANGE: Send JSON, not FormData ---
+        const payload = {
+            text: text,
+            include_audio: true // Send this flag
+        };
+
+        if (currentConversationId) {
+            payload.conversation_id = currentConversationId;
+        }
+
+        document.getElementById('status').textContent = 'Processing...';
+
+        try {
+            const response = await fetch('/voice/api/process/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json', // Set Content-Type for JSON
+                    'X-CSRFToken': csrftoken // --- ADD CSRF TOKEN ---
+                },
+                body: JSON.stringify(payload), // Stringify the JSON payload
+            });
+
+             const data = await response.json(); // Always try to parse JSON
+
+             if (!response.ok) { // Check HTTP status code
+                 console.error("API Error Response:", data);
+                 const errorMsg = data.error || `Request failed with status ${response.status}`;
+                 document.getElementById('status').textContent = 'Error: ' + errorMsg;
+                 addInteraction(text, `Error: ${errorMsg}`, null);
+                 return; // Stop processing on error
+             }
+
+
+            if (data.success && data.data) {
+                if (data.data.conversation_id) {
+                    currentConversationId = data.data.conversation_id;
+                    console.log("Updated Conversation ID:", currentConversationId);
+                }
+                 const fileData = (data.data.action?.type === 'display_file') ? data.data.action.payload : null;
+                 addInteraction(data.data.prompt || text, data.data.response, data.data.audio_url, fileData);
+                document.getElementById('status').textContent = 'Ready to listen...';
+            } else {
+                 const errorMsg = data.error || 'Received unexpected response format.';
+                 document.getElementById('status').textContent = 'Error: ' + errorMsg;
+                 addInteraction(text, `Assistant Error: ${errorMsg}`, null);
+            }
+        } catch (error) {
+            console.error('Error sending text command:', error);
+            document.getElementById('status').textContent = 'Error processing command';
+            addInteraction(text, 'Sorry, a network or server error occurred.', null);
+        }
+    }
+        // Handle text input
+        document.getElementById('sendText').addEventListener('click', () => {
+            const textInput = document.getElementById('textInput');
+            const text = textInput.value.trim();
+            if (text) {
+                submitTextCommand(text);
+                textInput.value = ''; // Clear input
+            }
+        });
+        
+        // Allow pressing Enter to send
+        document.getElementById('textInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) { // Send on Enter, allow Shift+Enter for newline
+                e.preventDefault(); // Prevent default newline in input
+                const textInput = document.getElementById('textInput');
+                const text = textInput.value.trim();
+                if (text) {
+                    submitTextCommand(text);
+                    textInput.value = ''; // Clear input
+                }
+            }
+        });
+
+        // Add a button to start a new conversation
+        function startNewConversation() {
+            currentConversationId = null; // Reset ID
+            const chatContainer = document.getElementById('chatContainer');
+            chatContainer.innerHTML = ''; // Clear previous messages visually
+
+            // Add a system message to indicate a new chat
+            const divider = document.createElement('div');
+            divider.className = 'system-message'; // Use a distinct style
+            divider.textContent = 'New Conversation Started';
+            chatContainer.appendChild(divider);
+
+            document.getElementById('status').textContent = 'Ready to listen...';
+            console.log("[Conversation] Started new conversation.");
+        }
+
+        document.getElementById('startRecording').addEventListener('click', () => {
+            if (!mediaRecorder) {
+                alert("Microphone not ready. Please grant permission.");
+                return;
+            }
+            audioChunks = [];
+            mediaRecorder.start();
+            document.getElementById('startRecording').disabled = true;
+            document.getElementById('stopRecording').disabled = false;
+            document.getElementById('status').textContent = 'Recording...';
+        });
+
+        document.getElementById('stopRecording').addEventListener('click', () => {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+            }
+            document.getElementById('startRecording').disabled = false;
+            document.getElementById('stopRecording').disabled = true;
+            document.getElementById('status').textContent = 'Processing...'; // Status update after stop
+        });
+
+        document.getElementById('newConversation').addEventListener('click', () => {
+            startNewConversation();
+        });
+
+        // Initialize on page load
+        setupRecorder();
+    </script>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Verify Email</title>
+    <style>
+        .verification-container {
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .otp-input {
+            width: 200px;
+            padding: 10px;
+            font-size: 18px;
+            text-align: center;
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .verify-btn {
+            background-color: #2563eb;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 200px;
+        }
+
+        .verify-btn:hover {
+            background-color: #1d4ed8;
+        }
+
+        .resend-link {
+            margin-top: 15px;
+            color: #2563eb;
+            text-decoration: none;
+        }
+
+        .error-message {
+            color: #dc2626;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="verification-container">
+        <h2>Verify Your Email</h2>
+        <p>We've sent a verification code to your email address.</p>
+        
+        <form method="post">
+            {% csrf_token %}
+            {% if messages %}
+            <div class="error-message">
+                {% for message in messages %}
+                    {{ message }}
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            {{ form.otp }}
+            <button type="submit" class="verify-btn">Verify</button>
+        </form>
+        
+        <!-- Resend form -->
+        <form method="post" class="resend-form">
+            {% csrf_token %}
+            <input type="hidden" name="resend" value="true">
+            <button type="submit" class="resend-link">Resend Code</button>
+        </form>
+    </div>
+</body>
+</html>

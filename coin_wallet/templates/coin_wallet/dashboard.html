@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block title %}Coin Wallet Dashboard{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">Coin Wallet Dashboard</h1>
+        </div>
+    </div>
+
+    <div class="row mb-5">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Your Coin Balance</h5>
+                    <h2 class="display-4 text-primary">{{ wallet.balance }}</h2>
+                    <p class="card-text">
+                        1 coin is awarded for each MB of file uploaded. Use your coins to increase storage space or unlock premium features.
+                    </p>
+                    <a href="{% url 'redeem-coins' %}" class="btn btn-primary">Redeem Coins</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Coin Stats</h5>
+                    <div class="stats-container">
+                        <h6>Earnings</h6>
+                        <ul class="list-group mb-3">
+                            {% for earning in earnings %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    {{ earning.transaction_type }}
+                                    <span class="badge bg-success rounded-pill">+{{ earning.total }}</span>
+                                </li>
+                            {% empty %}
+                                <li class="list-group-item">No earnings yet.</li>
+                            {% endfor %}
+                        </ul>
+
+                        <h6>Redemptions</h6>
+                        <ul class="list-group">
+                            {% for redemption in redemptions %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    {{ redemption.transaction_type }}
+                                    <span class="badge bg-danger rounded-pill">{{ redemption.total }}</span>
+                                </li>
+                            {% empty %}
+                                <li class="list-group-item">No redemptions yet.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Transactions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Transaction Type</th>
+                                    <th>Source</th>
+                                    <th>Amount</th>
+                                    <th>Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for transaction in transactions %}
+                                    <tr>
+                                        <td>{{ transaction.created_at|date:"M d, Y H:i" }}</td>
+                                        <td>{{ transaction.get_transaction_type_display }}</td>
+                                        <td>{{ transaction.source|default:"-" }}</td>
+                                        <td class="{% if transaction.amount > 0 %}text-success{% else %}text-danger{% endif %}">
+                                            {% if transaction.amount > 0 %}+{% endif %}{{ transaction.amount }}
+                                        </td>
+                                        <td>{{ transaction.running_balance }}</td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="text-center">No transactions yet.</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <small class="text-muted">Upload files to earn more coins. 1 coin is awarded per MB uploaded.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

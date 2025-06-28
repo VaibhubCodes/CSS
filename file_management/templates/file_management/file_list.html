@@ -1,0 +1,695 @@
+{# file_management/templates/file_management/file_list.html #}
+<h2>Uploaded Files</h2>
+
+
+<div class="content-container">
+    <!-- Categories Section -->
+    <div class="categories-section">
+        <h3>Files & Quick Access</h3>
+        <div class="category-pills">
+            <div class="category-pill active" onclick="filterItems('all', this)">All</div>
+            
+            <!-- Regular Categories -->
+            {% for category in categories %}
+                {% if category.type == 'regular' %}
+                    <div class="category-pill" 
+                        data-category="{{ category.name }}"
+                        data-count="{{ category.count }}"
+                        onclick="filterItems('{{ category.name }}', this)">
+                        {{ category.name }} ({{ category.count }})
+                    </div>
+                {% endif %}
+            {% endfor %}
+            
+            <!-- Special Categories -->
+            {% for category in categories %}
+                {% if category.type == 'special' %}
+                    <div class="category-pill special" 
+                        data-category="{{ category.name }}"
+                        data-count="{{ category.count }}"
+                        onclick="showPreview('{{ category.name|lower }}')">
+                        {{ category.name }} 
+                        <span class="count-detail">
+                            (Active: {{ category.count }}/Total: {{ category.total_count }})
+                        </span>
+                    </div>
+                {% endif %}
+            {% endfor %}
+            
+            <!-- Expired Category -->
+            {% for category in categories %}
+                {% if category.type == 'expired' %}
+                    <div class="category-pill expired" 
+                        data-category="{{ category.name }}"
+                        data-count="{{ category.count }}"
+                        onclick="showPreview('expired')">
+                        {{ category.name }} ({{ category.count }})
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="files-container">
+        <!-- Files List -->
+        <div id="files-list">
+            <table border="1">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Type</th>
+                        <th>Name</th>
+                        <th>Category</th>
+                        <th>Upload Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for file in files %}
+                    <tr class="file-row" data-category="{{ file.category.name|default:'Uncategorized' }}" data-file-id="{{ file.id }}">
+                        <td>{{ file.id }}</td>
+                        <td>{{ file.file_type }}</td>
+                        <td><a href="{{ file.get_file_url }}">{{ file.file.name }}</a></td>
+                        <td><span class="category-tag">{{ file.category.name|default:'Uncategorized' }}</span></td>
+                        <td>{{ file.upload_date }}</td>
+                        <td>
+                            <div class="action-buttons">
+                                {% if file.file_type == 'document' %}
+                                <button onclick="startOCR({{ file.id }})" class="action-btn">Process OCR</button>
+                                <span id="processing-status-{{ file.id }}"></span>
+                                {% endif %}
+                                <button onclick="deleteFile({{ file.id }})" class="delete-btn">Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Cards Preview -->
+    <div id="cards-preview" class="preview-section" style="display: none;">
+        <div class="preview-header">
+            <h3>Cards Quick View</h3>
+            <button onclick="window.location.href='/file_management/cards/'" class="view-all-btn">View All Cards</button>
+        </div>
+        <div class="preview-grid">
+            {% for card in active_cards %}
+            <div class="preview-card" onclick="window.location.href='/file_management/cards/'">
+                <div class="card-type">{{ card.card_type|title }} Card</div>
+                <div class="card-number">**** {{ card.card_number|slice:"-4:" }}</div>
+                <div class="card-info">
+                    <div class="card-holder">{{ card.card_holder }}</div>
+                    <div class="bank-name">{{ card.bank_name }}</div>
+                </div>
+                <span class="status-active">Active</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+        <!-- Subscriptions Preview -->
+    <div id="subscriptions-preview" class="preview-section" style="display: none;">
+        <div class="preview-header">
+            <h3>Subscriptions Quick View</h3>
+            <button onclick="window.location.href='/file_management/subscriptions/'" class="view-all-btn">View All Subscriptions</button>
+        </div>
+        <div class="preview-grid">
+            {% for sub in active_subscriptions %}
+            <div class="preview-card" onclick="window.location.href='/file_management/subscriptions/'">
+                <div class="sub-name">{{ sub.app_name }}</div>
+                <div class="sub-info">
+                    <span class="sub-amount">₹{{ sub.amount }}</span>
+                    <span class="sub-status status-{{ sub.current_status }}">{{ sub.current_status }}</span>
+                </div>
+                <div class="sub-type">{{ sub.subscription_type }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Expired Items Preview -->
+    <div id="expired-preview" class="preview-section" style="display: none;">
+        <div class="preview-header">
+            <h3>Expired Items</h3>
+        </div>
+        <div class="preview-grid">
+            {% if expired_items.documents %}
+            <div class="expired-section">
+                <h4>Documents</h4>
+                {% for doc in expired_items.documents %}
+                <div class="preview-card">
+                    <div class="doc-name">{{ doc.file.name }}</div>
+                    <div class="doc-type">{{ doc.file_type }}</div>
+                    <span class="status-expired">Expired</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if expired_items.cards %}
+            <div class="expired-section">
+                <h4>Cards</h4>
+                {% for card in expired_items.cards %}
+                <div class="preview-card">
+                    <div class="card-type">{{ card.card_type|title }} Card</div>
+                    <div class="card-number">**** {{ card.card_number|slice:"-4:" }}</div>
+                    <span class="status-expired">Expired</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if expired_items.subscriptions %}
+            <div class="expired-section">
+                <h4>Subscriptions</h4>
+                {% for sub in expired_items.subscriptions %}
+                <div class="preview-card">
+                    <div class="sub-name">{{ sub.app_name }}</div>
+                    <div class="sub-type">{{ sub.subscription_type }}</div>
+                    <span class="status-expired">Expired</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+        <!-- OCR Results Container -->
+        <div id="ocr-container">
+            <div id="ocrResult" class="ocr-result-panel">
+                <div class="ocr-header">
+                    <h3>OCR Result</h3>
+                    <button onclick="closeOCR()" class="close-btn">×</button>
+                </div>
+                <div id="ocrContent" class="ocr-content"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .categories-section {
+    margin: 20px 0;
+    padding: 15px;
+    background: #f8fafc;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    overflow-x: auto; /* Add horizontal scroll for small screens */
+}
+    
+    .category-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 4px;
+        min-width: min-content; /* Ensure pills don't shrink too much */
+    }
+    
+    .category-pill {
+    padding: 6px 12px;
+    background: #e2e8f0;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap; /* Prevent text wrapping */
+    font-size: 13px;
+    line-height: 1.2;
+    min-width: fit-content;
+}
+    
+    .category-pill:hover {
+        background: #cbd5e1;
+    }
+    
+    .category-pill.active {
+        background: #2563eb;
+        color: white;
+    }
+    
+    .preview-section {
+    margin-top: 20px;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+    
+    .preview-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    .preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+    
+    .preview-card {
+        background: #f8fafc;
+        padding: 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+    
+    .preview-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .status-active {
+        background: #dcfce7;
+        color: #166534;
+        padding: 4px 8px;
+        border-radius: 4px;
+    }
+    
+    .status-expired {
+        background: #fee2e2;
+        color: #991b1b;
+        padding: 4px 8px;
+        border-radius: 4px;
+    }
+    
+    .view-all-btn {
+        background: #2563eb;
+        color: white;
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+    
+    .view-all-btn:hover {
+        background: #1d4ed8;
+    }
+
+    .action-buttons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    }   
+
+    .action-btn {
+        padding: 6px 12px;
+        background: #2563eb;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .delete-btn {
+        padding: 6px 12px;
+        background: #dc2626;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .delete-btn:hover {
+        background: #b91c1c;
+    }
+
+    .action-btn:hover {
+        background: #1d4ed8;
+    }
+    
+    .content-container {
+    padding: 20px;
+}
+
+    .files-container {
+        position: relative;
+    }
+
+    .ocr-result-panel {
+        display: none;
+        margin-top: 20px;
+        padding: 20px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .ocr-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .close-btn {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #666;
+    }
+
+    .close-btn:hover {
+        color: #000;
+    }
+
+    .ocr-content {
+        max-height: 400px;
+        overflow-y: auto;
+        padding: 10px;
+        background: #f8f9fa;
+        border-radius: 4px;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .expired-section {
+        margin-bottom: 24px;
+    }
+
+    .expired-section h4 {
+        margin: 0 0 12px 0;
+        color: #dc2626;
+        font-size: 16px;
+    }
+
+    @media (max-width: 640px) {
+        .category-pills {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .preview-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .category-pill.special {
+        background: #818cf8;
+        color: white;
+    }
+
+    .category-pill.expired {
+        background: #ef4444;
+        color: white;
+    }
+
+    .count-detail {
+        font-size: 12px;
+        opacity: 0.9;
+    }
+
+
+    .categories-section h3 {
+        margin: 0;
+        color: #1f2937;
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+
+</style>
+
+<script>
+    function showPreview(type) {
+    // Hide all containers first
+    document.getElementById('files-list').style.display = 'none';
+    document.getElementById('cards-preview').style.display = 'none';
+    document.getElementById('subscriptions-preview').style.display = 'none';
+    document.getElementById('expired-preview').style.display = 'none';
+
+    // Show the selected container
+    switch(type) {
+        case 'cards':
+            document.getElementById('cards-preview').style.display = 'block';
+            break;
+        case 'subscriptions':
+            document.getElementById('subscriptions-preview').style.display = 'block';
+            break;
+        case 'expired':
+            document.getElementById('expired-preview').style.display = 'block';
+            break;
+        default:
+            document.getElementById('files-list').style.display = 'block';
+    }
+
+    // Update active pill
+    updateActivePill(type);
+}
+
+async function startOCR(fileId) {
+    const processingStatus = document.getElementById(`processing-status-${fileId}`);
+    if (processingStatus) {
+        processingStatus.textContent = 'Processing...';
+    }
+    
+    try {
+        const response = await fetch(`/file_management/ocr/process/${fileId}/`);
+        const data = await response.json();
+        
+        if (data.status === 'completed') {
+            displayOCRResult(data.text);
+            if (processingStatus) {
+                processingStatus.textContent = 'Completed';
+            }
+            updateCategory(fileId, data.category || 'Personal');
+        } else if (data.job_id) {
+            if (processingStatus) {
+                processingStatus.textContent = 'Processing (0%)...';
+            }
+            checkOCRStatus(data.job_id, fileId, 0);
+        } else {
+            if (processingStatus) {
+                processingStatus.textContent = 'Failed: ' + (data.error || 'Unknown error');
+            }
+            console.error('OCR Error:', data);
+            updateCategory(fileId, 'Personal');
+        }
+    } catch (error) {
+        console.error('Error starting OCR:', error);
+        if (processingStatus) {
+            processingStatus.textContent = 'Failed to start OCR: ' + error.message;
+        }
+        updateCategory(fileId, 'Personal');
+    }
+}
+
+async function checkOCRStatus(jobId, fileId, attempts) {
+    const processingStatus = document.getElementById(`processing-status-${fileId}`);
+    const maxAttempts = 120; // 10 minutes (120 * 5 seconds)
+    
+    try {
+        const response = await fetch(`/file_management/ocr/result/${jobId}/`);
+        const data = await response.json();
+        
+        if (data.status === 'completed') {
+            displayOCRResult(data.text);
+            processingStatus.textContent = 'Completed';
+            updateCategory(fileId, data.category || 'Personal');
+        } else if (data.status === 'failed') {
+            processingStatus.textContent = 'Failed: ' + (data.error || 'Unknown error');
+            console.error('OCR Status Error:', data);  // Add logging
+            updateCategory(fileId, 'Personal');
+        } else if (attempts >= maxAttempts) {
+            processingStatus.textContent = 'Timeout: Processing took too long';
+            updateCategory(fileId, 'Personal');
+        } else {
+            const progress = Math.min(95, Math.round((attempts / maxAttempts) * 100));
+            processingStatus.textContent = `Processing (${progress}%)...`;
+            setTimeout(() => checkOCRStatus(jobId, fileId, attempts + 1), 5000);
+        }
+    } catch (error) {
+        console.error('Error checking OCR status:', error);
+        if (attempts < maxAttempts) {
+            setTimeout(() => checkOCRStatus(jobId, fileId, attempts + 1), 5000);
+            processingStatus.textContent = `Error checking status. Retrying... (${attempts}/${maxAttempts})`;
+        } else {
+            processingStatus.textContent = 'Failed: Too many errors';
+            updateCategory(fileId, 'Personal');
+        }
+    }
+}
+
+function displayOCRResult(text) {
+    const resultDiv = document.getElementById('ocrResult');
+    const contentDiv = document.getElementById('ocrContent');
+    
+    if (!resultDiv || !contentDiv) {
+        console.error('OCR result elements not found');
+        return;
+    }
+    
+    resultDiv.style.display = 'block';
+    
+    if (Array.isArray(text)) {
+        contentDiv.innerHTML = text.join('<br>');
+    } else if (typeof text === 'string') {
+        contentDiv.innerHTML = text;
+    } else {
+        contentDiv.innerHTML = JSON.stringify(text, null, 2);
+    }
+    
+    resultDiv.scrollIntoView({ behavior: 'smooth' });
+}
+
+    function updateCategory(fileId, category) {
+    const row = document.querySelector(`tr[data-file-id="${fileId}"]`);
+    if (row) {
+        const categoryTag = row.querySelector('.category-tag');
+        if (categoryTag) {
+            categoryTag.textContent = category;
+        }
+        row.setAttribute('data-category', category);
+    }
+}
+
+    function filterFiles(category) {
+        const rows = document.querySelectorAll('tr.file-row');
+        const pills = document.querySelectorAll('.category-pill');
+        
+        // Update active pill
+        pills.forEach(pill => {
+            pill.classList.remove('active');
+            if (pill.textContent.trim() === category || (category === 'all' && pill.textContent.trim() === 'All')) {
+                pill.classList.add('active');
+            }
+        });
+        
+        // Filter rows
+        rows.forEach(row => {
+            const rowCategory = row.getAttribute('data-category');
+            if (category === 'all' || rowCategory === category) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    function handleSpecialCategory(category) {
+    // Hide all containers
+    document.getElementById('files-list').style.display = 'none';
+    document.getElementById('cards-preview').style.display = 'none';
+    document.getElementById('subscriptions-preview').style.display = 'none';
+
+    // Show selected category
+    if (category === 'cards') {
+        document.getElementById('cards-preview').style.display = 'block';
+    } else if (category === 'subscriptions') {
+        document.getElementById('subscriptions-preview').style.display = 'block';
+    }
+
+    // Update active pill
+    updateActivePill(category);
+}
+
+    function filterItems(category, pill) {
+        // Show files list and hide all previews
+        document.getElementById('files-list').style.display = 'block';
+        document.getElementById('cards-preview').style.display = 'none';
+        document.getElementById('subscriptions-preview').style.display = 'none';
+        document.getElementById('expired-preview').style.display = 'none';
+        
+        // Filter files
+        document.querySelectorAll('tr.file-row').forEach(row => {
+            row.style.display = (category === 'all' || row.dataset.category === category) ? '' : 'none';
+        });
+
+        // Update active pill
+        document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
+        if (pill) pill.classList.add('active');
+    }
+
+    function updateActivePill(category) {
+        const pills = document.querySelectorAll('.category-pill');
+        pills.forEach(pill => {
+            pill.classList.remove('active');
+            if (pill.textContent.toLowerCase().includes(category.toLowerCase())) {
+                pill.classList.add('active');
+            }
+        });
+    }
+
+    async function deleteFile(fileId) {
+    if (!confirm('Are you sure you want to delete this file? This action cannot be undone.')) {
+        return;
+    }
+
+    try {
+        // Get the row and category before making the delete request
+        const row = document.querySelector(`tr[data-file-id="${fileId}"]`);
+        const category = row ? row.getAttribute('data-category') : null;
+
+        const response = await fetch(`/file_management/delete/${fileId}/`, {
+            method: 'POST',  // Changed to POST for better security
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            // Remove the row if it exists
+            if (row) {
+                // Update category count if we have the category
+                if (category) {
+                    const categoryPill = document.querySelector(`.category-pill[data-category="${category}"]`);
+                    if (categoryPill) {
+                        const currentCount = parseInt(categoryPill.getAttribute('data-count') || '0');
+                        const newCount = Math.max(0, currentCount - 1);
+                        categoryPill.setAttribute('data-count', newCount);
+                        categoryPill.textContent = `${category} (${newCount})`;
+                    }
+                }
+                row.remove();
+            }
+            
+            alert('File deleted successfully');
+            // Optionally reload the page to refresh all counts
+            window.location.reload();
+        } else {
+            throw new Error(data.message || 'Error deleting file');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error deleting file: ' + error.message);
+    }
+}
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    function closeOCR() {
+    const resultDiv = document.getElementById('ocrResult');
+    if (resultDiv) {
+        resultDiv.style.display = 'none';
+    }
+}
+
+</script>
+

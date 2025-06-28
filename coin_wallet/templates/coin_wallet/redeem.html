@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+
+{% block title %}Redeem Coins{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">Redeem Your Coins</h1>
+            <p class="lead">
+                You currently have <strong class="text-primary">{{ wallet.balance }}</strong> coins.
+                Choose how you want to redeem them below.
+            </p>
+        </div>
+    </div>
+
+    {% if success %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <strong>Success!</strong> {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <strong>Error!</strong> {{ error }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
+    <div class="row mb-5">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Storage Increase</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Exchange coins for additional storage space. For every 10 coins, you'll get 1GB of extra storage.
+                    </p>
+                    <form method="post" action="{% url 'redeem-coins' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="redemption_type" value="storage">
+                        <div class="mb-3">
+                            <label for="storage-amount" class="form-label">Coins to redeem</label>
+                            <input type="number" class="form-control" id="storage-amount" name="amount" 
+                                min="10" max="{{ wallet.balance }}" step="10" value="10" required>
+                            <div class="form-text">Must be multiples of 10 coins</div>
+                        </div>
+                        <div class="mb-3">
+                            <p>You will get: 
+                                <span id="storage-result">1</span> GB of additional storage
+                            </p>
+                        </div>
+                        <button type="submit" class="btn btn-primary" {% if wallet.balance < 10 %}disabled{% endif %}>
+                            Redeem for Storage
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Premium Features</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Exchange coins for premium features like advanced OCR, priority processing, and more.
+                    </p>
+                    <form method="post" action="{% url 'redeem-coins' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="redemption_type" value="premium">
+                        <div class="mb-3">
+                            <label for="premium-amount" class="form-label">Coins to redeem</label>
+                            <input type="number" class="form-control" id="premium-amount" name="amount" 
+                                min="20" max="{{ wallet.balance }}" value="20" required>
+                            <div class="form-text">Minimum 20 coins required</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary" {% if wallet.balance < 20 %}disabled{% endif %}>
+                            Redeem for Premium
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Redemption Information</h5>
+                </div>
+                <div class="card-body">
+                    <h6>How to earn more coins:</h6>
+                    <ul>
+                        <li>Upload files: Get 1 coin for every MB of file size</li>
+                        <li>Refer friends: Coming soon</li>
+                        <li>Complete profile: Coming soon</li>
+                    </ul>
+                    
+                    <h6>Redemption rules:</h6>
+                    <ul>
+                        <li>Storage increases are permanent upgrades to your account</li>
+                        <li>Premium features last for 30 days after redemption</li>
+                        <li>All redemptions are final and cannot be reversed</li>
+                    </ul>
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'coin-wallet-dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Calculate storage increase based on coin amount
+    const storageInput = document.getElementById('storage-amount');
+    const storageResult = document.getElementById('storage-result');
+    
+    if (storageInput && storageResult) {
+        storageInput.addEventListener('input', function() {
+            const coins = parseInt(this.value) || 0;
+            const storageGB = Math.floor(coins / 10);
+            storageResult.textContent = storageGB;
+        });
+    }
+});
+</script>
+{% endblock %} 

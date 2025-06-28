@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Subscription Plans</title>
+    <style>
+        .plan-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
+            flex-wrap: wrap;
+        }
+
+        .plan-card {
+            width: 300px;
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            position: relative;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .plan-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .plan-card.sparkle {
+            border: 2px solid #ffd700;
+            background: linear-gradient(135deg, #fff9e6 0%, #ffffff 100%);
+        }
+
+        .sparkle-badge {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #333;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+            box-shadow: 0 2px 10px rgba(255, 215, 0, 0.4);
+        }
+
+        .plan-title {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .plan-description {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+            min-height: 40px;
+        }
+
+        .plan-price {
+            font-size: 32px;
+            color: #2563eb;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+
+        .storage-limit {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .subscribe-button {
+            background-color: #2563eb;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .subscribe-button:hover {
+            background-color: #1d4ed8;
+        }
+
+        .sparkle .subscribe-button {
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #333;
+        }
+
+        .sparkle .subscribe-button:hover {
+            background: linear-gradient(45deg, #ffed4e, #ffd700);
+        }
+
+        .features-list {
+            list-style: none;
+            padding: 0;
+            margin: 15px 0;
+            text-align: left;
+        }
+
+        .features-list li {
+            padding: 8px 0;
+            color: #555;
+            display: flex;
+            align-items: center;
+        }
+
+        .features-list li:before {
+            content: "✓";
+            color: #28a745;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .sparkle .features-list li:before {
+            content: "✨";
+        }
+
+        .page-title {
+            text-align: center;
+            font-size: 36px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .page-subtitle {
+            text-align: center;
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 40px;
+        }
+    </style>
+</head>
+<body>
+    <h1 class="page-title">Choose Your Plan</h1>
+    <p class="page-subtitle">Select the perfect plan for your needs</p>
+    
+    <div class="plan-container">
+        {% for plan in plans %}
+        <div class="plan-card {% if plan.is_sparkle %}sparkle{% endif %}">
+            {% if plan.is_sparkle %}
+                <div class="sparkle-badge">✨ SPARKLE</div>
+            {% endif %}
+            
+            <div class="plan-title">{{ plan.name }}</div>
+            <div class="plan-description">{{ plan.description|default:"" }}</div>
+            <div class="plan-price">₹{{ plan.price|floatformat:0 }}</div>
+            <div class="storage-limit">{{ plan.storage_gb }}GB Storage</div>
+            
+            <ul class="features-list">
+                {% for feature in plan.features %}
+                    <li>{{ feature }}</li>
+                {% empty %}
+                    <li>{{ plan.storage_gb }}GB Storage</li>
+                    <li>Basic Support</li>
+                    <li>Standard Processing</li>
+                {% endfor %}
+            </ul>
+            
+            <a href="{% url 'create_subscription' plan.plan_code %}" class="subscribe-button">
+                Subscribe Now
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        // Add some interactive effects
+        document.addEventListener('DOMContentLoaded', function() {
+            const sparkleCards = document.querySelectorAll('.plan-card.sparkle');
+            
+            sparkleCards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-5px) scale(1.02)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(-5px) scale(1)';
+                });
+            });
+        });
+    </script>
+</body>
+</html>
