@@ -189,7 +189,7 @@ MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
 OPENSEARCH_HOST = 'search-sparkle-yazcqkfkheq6kkk4g2dg6ykype.aos.us-east-1.on.aws'
 OPENSEARCH_PORT = 443 
 
-OPENAI_API_KEY = "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"
+OPENAI_API_KEY = "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"
 RAZORPAY_KEY_ID = 'rzp_test_GY4iJFc1dQJzvQ'
 RAZORPAY_KEY_SECRET = 'Jwb2JZb3lsJnzrCUROE92mF8'
 
