@@ -196,6 +196,7 @@ OPENSEARCH_HOST = 'search-sparkle-yazcqkfkheq6kkk4g2dg6ykype.aos.us-east-1.on.aw
 OPENSEARCH_PORT = 443 
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
 RAZORPAY_KEY_ID = 'rzp_test_GY4iJFc1dQJzvQ'
 RAZORPAY_KEY_SECRET = 'Jwb2JZb3lsJnzrCUROE92mF8'
 
