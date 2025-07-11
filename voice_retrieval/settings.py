@@ -1,5 +1,10 @@
 from pathlib import Path
+
+
+import os
+from dotenv import load_dotenv
 from datetime import timedelta
+load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -94,7 +99,8 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'voice_retrieval.wsgi.application'
-
+CELERY_BROKER_URL     = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/1'
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
@@ -189,7 +195,7 @@ MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
 OPENSEARCH_HOST = 'search-sparkle-yazcqkfkheq6kkk4g2dg6ykype.aos.us-east-1.on.aws'
 OPENSEARCH_PORT = 443 
 
-OPENAI_API_KEY = "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"
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 RAZORPAY_KEY_ID = 'rzp_test_GY4iJFc1dQJzvQ'
 RAZORPAY_KEY_SECRET = 'Jwb2JZb3lsJnzrCUROE92mF8'
 
@@ -202,9 +208,9 @@ LOGOUT_REDIRECT_URL = 'login'
 # Google OAuth2 settings
 # GOOGLE_OAUTH2_CLIENT_SECRETS_JSON = os.path.join(BASE_DIR, 'client_secrets.json')
 GOOGLE_OAUTH_REDIRECT_URI = 'http://127.0.0.1:8000/oauth2callback/'
-GOOGLE_OAUTH2_SECRET = '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'
+GOOGLE_OAUTH2_SECRET = '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'
 GOOGLE_CLIENT_SECRET = GOOGLE_OAUTH2_SECRET
-GOOGLE_CLIENT_ID = "450349180485-qf6n4i6udsit4ftgrcch03qusvums09a.apps.googleusercontent.com"
+GOOGLE_CLIENT_ID = "830909167169-cem7cof874asrf6fpa4smmumdcsvjfpm.apps.googleusercontent.com"
 
 # Separate mobile client ID (you need to create this in Google Cloud Console)
 GOOGLE_MOBILE_CLIENT_ID = ""  # Add your mobile client ID here

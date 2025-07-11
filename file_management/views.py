@@ -1758,79 +1758,92 @@ def file_detail_view(request, file_id):
 from voice_retrieval.utils import mobile_api_view
 from .serializers import MobileFileUploadSerializer
 
+
+from voice_retrieval.utils import mobile_api_view
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+from django.db.models import Q
+from .models import UserFile, FileCategory
+from .serializers import UserFileSerializer
+
+@mobile_api_view
 @csrf_exempt
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
-@mobile_api_view
 def mobile_file_list(request):
-    """Mobile-optimized file list endpoint"""
+    """
+    Mobile-optimized file list endpoint.
+    Supports filters: category, file_type, search, favorites_only, show_hidden.
+    """
+    # GET: list files
     if request.method == 'GET':
-        # Get query parameters for filtering
-        category = request.query_params.get('category')
-        file_type = request.query_params.get('file_type')
-        search = request.query_params.get('search')
-        favorites_only = request.query_params.get('favorites_only')  # ✅ NEW
-        show_hidden = request.query_params.get('show_hidden')
-        # Filter files
-        files = UserFile.objects.filter(user=request.user)
-        serializer = UserFileSerializer(files, many=True, context={'request': request}) # Add context
+        category       = request.query_params.get('category')
+        file_type      = request.query_params.get('file_type')
+        search         = request.query_params.get('search')
+        favorites_only = request.query_params.get('favorites_only')
+        show_hidden    = request.query_params.get('show_hidden')
 
-        if favorites_only in ['true', '1']:  # ✅ NEW
+        # Base queryset: only files belonging to current user
+        files = UserFile.objects.filter(user=request.user)
+
+        # Filter hidden vs visible
+        if show_hidden in ['true', '1']:
+            files = files.filter(is_hidden=True)
+        else:
+            files = files.filter(is_hidden=False)
+
+        # Favorites filter
+        if favorites_only in ['true', '1']:
             files = files.filter(is_favorite=True)
 
-        if category and category != 'all':
-            files = files.filter(category__name=category)
-        
+        # Category filter
+        if category and category.lower() != 'all':
+            files = files.filter(category__name__iexact=category)
+
+        # File-type filter
         if file_type:
-            files = files.filter(file_type=file_type)
-        
+            files = files.filter(file_type__iexact=file_type)
+
+        # Search filter
         if search:
             files = files.filter(
                 Q(original_filename__icontains=search) |
                 Q(category__name__icontains=search)
             )
-        if show_hidden not in ['true', '1']:
-                files = files.filter(is_hidden=False)    
-        # Get categories for filters
+
+        # Build category counts for filter UI
         categories = []
-        for category in FileCategory.objects.all():
-            count = UserFile.objects.filter(user=request.user, category=category).count()
-            categories.append({
-                'id': category.id,
-                'name': category.name,
-                'count': count
-            })
-            
-        serializer = UserFileSerializer(files, many=True)
-        
-        return {
-            'files': serializer.data,
+        for cat in FileCategory.objects.all():
+            count = UserFile.objects.filter(user=request.user, category=cat).count()
+            categories.append({ 'id': cat.id, 'name': cat.name, 'count': count })
+
+        # Serialize
+        payload = {
+            'files': UserFileSerializer(files, many=True, context={'request': request}).data,
             'categories': categories
         }
-    
-    elif request.method == 'POST':
-        # Upload file logic
+        return Response({'success': True, 'data': payload}, status=status.HTTP_200_OK)
+
+    # POST: upload file
+    if request.method == 'POST':
+        file_obj  = request.FILES.get('file')
+        file_type = request.data.get('file_type')
+
+        if not file_obj or not file_type:
+            return Response({'success': False, 'error': 'File and file type are required'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
         try:
-            file_obj = request.FILES.get('file')
-            file_type = request.data.get('file_type')
-            
-            if not file_obj or not file_type:
-                return Response({
-                    'success': False,
-                    'error': 'File and file type are required'
-                }, status=status.HTTP_400_BAD_REQUEST)
-                
             storage_manager = S3StorageManager(request.user)
-            
             if not storage_manager.check_storage_limit(file_obj.size):
-                return Response({
-                    'success': False,
-                    'error': 'Storage limit would be exceeded'
-                }, status=status.HTTP_400_BAD_REQUEST)
-            
-            # Process file upload
+                return Response({'success': False, 'error': 'Storage limit exceeded'},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+            # Upload
             file_key = storage_manager.upload_file(file_obj, file_obj.name)
-            
             user_file = UserFile.objects.create(
                 user=request.user,
                 file_type=file_type,
@@ -1838,20 +1851,17 @@ def mobile_file_list(request):
                 original_filename=file_obj.name,
                 file_size=file_obj.size
             )
-            
             storage_info = storage_manager.get_user_storage_info()
-            
-            return {
-                'file': UserFileSerializer(user_file).data,
+
+            payload = {
+                'file': UserFileSerializer(user_file, context={'request': request}).data,
                 'storage_info': storage_info
             }
-                
-        except Exception as e:
-            return Response({
-                'success': False,
-                'error': str(e)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'success': True, 'data': payload}, status=status.HTTP_201_CREATED)
 
+        except Exception as e:
+            return Response({'success': False, 'error': str(e)},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)     
 @csrf_exempt
 @api_view(['GET', 'DELETE'])
 @permission_classes([IsAuthenticated])
@@ -2496,49 +2506,75 @@ def mobile_process_ocr(request, file_id):
         }
 
 
+# file: file_management/views.py
+
+from rest_framework.decorators import (
+    api_view,
+    authentication_classes,
+    permission_classes
+)
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import SessionAuthentication, BasicAuthentication
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.response import Response
+from rest_framework import status
+from django.shortcuts import get_object_or_404
+
+from .models import UserFile
+from .serializers import UserFileSerializer
+
 @api_view(['POST'])
+@authentication_classes([JWTAuthentication, SessionAuthentication, BasicAuthentication])
 @permission_classes([IsAuthenticated])
 def create_document_pair(request):
-    """Create a paired document relationship"""
-    try:
-        front_file_id = request.data.get('front_file_id')
-        back_file_id = request.data.get('back_file_id')
-        document_type_name = request.data.get('document_type_name', '')
-        
-        if not front_file_id or not back_file_id:
-            return Response({
-                'success': False,
-                'error': 'Both front_file_id and back_file_id are required'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Get both files and verify ownership
-        front_file = get_object_or_404(UserFile, id=front_file_id, user=request.user)
-        back_file = get_object_or_404(UserFile, id=back_file_id, user=request.user)
-        
-        # Update front file
-        front_file.document_side = 'front'
-        front_file.paired_document = back_file
-        front_file.document_type_name = document_type_name
-        front_file.save()
-        
-        # Update back file
-        back_file.document_side = 'back'
-        back_file.paired_document = front_file
-        back_file.document_type_name = document_type_name
-        back_file.save()
-        
-        return Response({
-            'success': True,
-            'message': 'Document pair created successfully',
-            'front_file': UserFileSerializer(front_file).data,
-            'back_file': UserFileSerializer(back_file).data
-        })
-        
-    except Exception as e:
-        return Response({
-            'success': False,
-            'error': str(e)
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    """
+    Pair two uploaded UserFile objects (front/back) under a common document_type_name.
+    """
+    user = request.user
+    # 1) Validate payload
+    front_id = request.data.get('front_file_id')
+    back_id  = request.data.get('back_file_id')
+    doc_type = request.data.get('document_type_name', '').strip()
+
+    if not front_id or not back_id:
+        return Response(
+            {"success": False, "error": "Both front_file_id and back_file_id are required."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # 2) Fetch both files, confirm they belong to this user
+    front_file = get_object_or_404(UserFile, id=front_id, user=user)
+    back_file  = get_object_or_404(UserFile, id=back_id,  user=user)
+
+    # 3) Update only the fields that change
+    front_file.document_side        = 'front'
+    front_file.paired_document      = back_file
+    front_file.document_type_name   = doc_type
+    front_file.save(
+        update_fields=['document_side', 'paired_document', 'document_type_name']
+    )
+
+    back_file.document_side         = 'back'
+    back_file.paired_document       = front_file
+    back_file.document_type_name    = doc_type
+    back_file.save(
+        update_fields=['document_side', 'paired_document', 'document_type_name']
+    )
+
+    # 4) Serialize with context so any URL/user fields still work
+    serializer = UserFileSerializer(
+        [front_file, back_file],
+        many=True,
+        context={'request': request}
+    )
+    front_data, back_data = serializer.data
+
+    return Response({
+        "success": True,
+        "message": "Document pair created successfully",
+        "front_file": front_data,
+        "back_file": back_data
+    }, status=status.HTTP_201_CREATED)
 
 
 @api_view(['POST'])

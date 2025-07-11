@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import WebLink, Meeting
+from .models import WebLink, Meeting,Notification
 
 @admin.register(WebLink)
 class WebLinkAdmin(admin.ModelAdmin):
@@ -15,3 +15,5 @@ class MeetingAdmin(admin.ModelAdmin):
     search_fields = ('meeting_name', 'description', 'user__username', 'user__email')
     list_filter = ('user', 'start_time')
     ordering = ('-start_time',)
+
+admin.site.register(Notification)
